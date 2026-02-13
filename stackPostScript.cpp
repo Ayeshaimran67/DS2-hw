@@ -3,6 +3,8 @@
 /*
 Write the implementation for the appropriate methods here
 */
+const long double PI = 3.141592653589793238L;
+
 StackPostScript::StackPostScript() {
     vctrstack.clear();
 }
@@ -21,8 +23,7 @@ void StackPostScript::reverseStack() {
 }
 
 void StackPostScript::push(long double item) {
-    vctrstack.resize(vctrstack.size()+ 1);
-    vctrstack[vctrstack.size()-1]= item;
+    vctrstack.push_back(item);
 }
 
 long double StackPostScript::pop() {
@@ -30,8 +31,8 @@ long double StackPostScript::pop() {
         std::cout<<"Empty stack nothing to pop"<<std::endl;
         return 0;
     }
-    long double top = vctrstack[vctrstack.size()-1];
-    vctrstack.resize(vctrstack.size()-1);
+    long double top = vctrstack.back();
+    vctrstack.pop_back();
     return top;
 }
 
@@ -40,8 +41,7 @@ long double StackPostScript::peek() {
         std::cout<<"empty stack"<<std::endl;
         return 0;
     }
-    long double top = vctrstack[vctrstack.size()-1];
-    return top;
+    return vctrstack.back();
 }
 
 long double StackPostScript::add() {
@@ -82,7 +82,7 @@ long double StackPostScript::multiply() {
 
 long double StackPostScript::divide() {
     if(vctrstack.size()<2) {
-        std::cout<<"Size of the stack must be atleast 2 for subtraction"<<std::endl;
+        std::cout<<"Size of the stack must be atleast 2 for division"<<std::endl;
         return 0;
     }
     long double a = pop();
@@ -104,7 +104,7 @@ long double StackPostScript::sin() {
         return 0;
     }
     long double a= pop();
-    long double c = std::sin(a * M_PI / 180.0);
+    long double c = std::sin(a * PI / 180.0);
     push(c);
     return c;
 }
@@ -115,18 +115,19 @@ long double StackPostScript::cos() {
         return 0;
     }
     long double a= pop();
-    long double c = std::cos(a * M_PI / 180.0);
+    long double c = std::cos(a * PI / 180.0);
     push(c);
     return c;
 }
 
 long double StackPostScript::atan() {
-    if(is_empty()) {
-        std::cout<<"Empty stack"<<std::endl;
+    if(vctrstack.size() < 2) {
+        std::cout << "Size of the stack must be at least 2 for atan" << std::endl;
         return 0;
     }
-    long double a= pop();
-    long double c = std::atan(a) * 180.0 / M_PI;
+    long double x = pop();  // denominator (second operand)
+    long double y = pop();  // numerator (first operand)
+    long double c = std::atan2(y, x) * 180.0 / PI;
     push(c);
     return c;
 }
