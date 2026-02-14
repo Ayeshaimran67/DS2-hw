@@ -56,53 +56,97 @@ void PostScriptFileSimplifier::writefile(std::string file) const {
 
 void PostScriptFileSimplifier::evaluate_operations() {
     StackPostScript stack;
-    for(auto& line :fileContents) {
-        auto tokens =str_split(line);
-        std::string Line1 = "";
-        for(size_t t=0; t<tokens.size();t++) {
-            std::string token= tokens[t];
-            bool isNum =true;
+    for(auto& line : fileContents) {
+        std::vector<std::string> tokens;
+        std::string current = "";
+        for(char ch :line) {
+            if(ch == ' '||ch == '\t'||ch=='\n') {
+                if(!current.empty()) {
+                    tokens.push_back(current);
+                    current = "";
+                }
+            } 
+            else {
+                current += ch;
+            }
+        }
+        if(!current.empty())
+            tokens.push_back(current);
+        std::string newLine = "";
+        for(size_t t = 0; t < tokens.size(); t++) {
+            std::string token = tokens[t];
+            bool isNum = true;
             if(token.empty()) {
                 isNum = false;
             }
-            for(size_t i =0; i<token.size();i++) {
-                if(i==0 && (token[i] =='-'||token[i] == '+')) {
-                    continue;
-                }
+            for(size_t i = 0; i < token.size(); i++) {
+                if(i == 0 && (token[i] == '-' || token[i] == '+')) {continue;}
                 if(token[i] == '.') {continue;}
-                if(token[i] < '0'|| token[i] > '9') { isNum = false; break; }
+                if(token[i] < '0'||token[i]>'9') {isNum = false; break;}
             }
             if(isNum) {
                 long double val = std::stold(token);
                 stack.push(val);
-                Line1+=removeTrailingZeros(val);
+                newLine += removeTrailingZeros(val);
             } 
-            else if (token == "add") stack.add();
-            else if (token == "sub") stack.subtract();
-            else if (token == "mul") stack.multiply();
-            else if (token == "div") stack.divide();
-            else if (token == "mod") stack.mod();
-            else if (token == "sqrt") stack.sqrt();
-            else if (token == "sin") stack.sin();
-            else if (token == "cos") stack.cos();
-            else if (token == "atan") stack.atan();
-            else if (token == "dup") stack.dup();
-            else if (token == "exch") stack.exch();
-            else if (token == "roll") {
-                if(stack.is_empty()) {continue;}
+            else if(token == "add") {
+                long double res = stack.add();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "sub") {
+                long double res = stack.subtract();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "mul") {
+                long double res = stack.multiply();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "div") {
+                long double res = stack.divide();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "mod") {
+                long double res = stack.mod();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "sqrt") {
+                long double res = stack.sqrt();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "sin") {
+                long double res = stack.sin();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "cos") {
+                long double res = stack.cos();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "atan") {
+                long double res = stack.atan();
+                newLine += removeTrailingZeros(res);
+            } 
+            else if(token == "dup") {
+                stack.dup();
+                newLine += removeTrailingZeros(stack.peek());
+            } 
+            else if(token == "exch") {
+                stack.exch();
+            } 
+            else if(token == "roll") {
                 long double j = stack.pop();
                 long double n = stack.pop();
                 stack.roll(n, j);
             }
             else if (keywords.find(token) != keywords.end()) {
-                Line1 += token;
+                if (!newLine.empty()) {newLine += " ";}
+                newLine += token;
+                continue;
             }
-            if (t != tokens.size() - 1) Line1 += " ";
+            if (t != tokens.size() - 1) {newLine += " ";}
         }
-        line = Line1;
+        line = newLine;
     }
 }
-
 void PostScriptFileSimplifier::replace_tokens(
     std::unordered_map<std::string, std::string>& tokens) {
     for(auto& line :fileContents) {
