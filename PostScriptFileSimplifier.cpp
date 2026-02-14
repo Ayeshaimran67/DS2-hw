@@ -18,6 +18,19 @@ PostScriptFileSimplifier::PostScriptFileSimplifier(std::string file) {
     inFile.close();
 }
 
+std::unordered_map<std::string, std::string> PostScriptFileSimplifier::get_tokens() const {
+    std::unordered_map<std::string, std::string> tokens;
+    for(const auto& line : fileContents) {
+        auto words = str_split(line);  
+        if(words.size() >= 3 && words[0][0] == '/' && words[2] == "def") {
+            std::string varName = words[0].substr(1); 
+            std::string value = words[1];
+            tokens[varName] = value;
+        }
+    }
+    return tokens;
+}
+
 void PostScriptFileSimplifier::simplify_definitions() {
     auto tokens= get_tokens();
     replace_tokens(tokens);
@@ -30,9 +43,9 @@ void PostScriptFileSimplifier::display_file() const {
 }
 
 void PostScriptFileSimplifier::writefile(std::string file) const {
-    std::ofstream outFile(filename);
+    std::ofstream outFile(file);
     if(!outFile) {
-        std::cout<<"Error: Cannot write to file "<<filename <<std::endl;
+        std::cout<<"Error: Cannot write to file "<<file <<std::endl;
         return;
     }
     for(auto& line: fileContents) {
