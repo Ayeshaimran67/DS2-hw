@@ -56,101 +56,98 @@ void PostScriptFileSimplifier::writefile(std::string file) const {
 
 void PostScriptFileSimplifier::evaluate_operations() {
     StackPostScript stack;
-    for(auto& line :fileContents) {
-        std::vector<std::string> tokens;
-        std::string current = "";
-        for(char ch:line) {
-            if(ch == ' '||ch =='\t'||ch=='\n') {
-                if(!current.empty()) {
-                    tokens.push_back(current);
-                    current = "";
-                }
-            } 
-            else {
-                current+= ch;
-            }
+    std::vector<std::string> newContents;
+    for(const std::string& line : fileContents) {
+        auto tokens = str_split(line);
+        if(!line.empty() && line[0]=='%') {
+            newContents.push_back(line);
+            continue;
         }
-        if(!current.empty())
-            tokens.push_back(current);
-        std::vector<std::string> newTokens;
+        if(tokens.size() >= 3 && tokens[0][0] =='/'&& tokens[2]== "def") {
+            newContents.push_back(line); 
+            continue;
+        }
+        if(tokens.size()>= 4 && tokens[0][0] == '/'&& tokens.back()=="def" && tokens[1][0] =='{') {
+            newContents.push_back(line); 
+            continue;
+        }
+        if(tokens.empty()) {
+            newContents.push_back(line);
+            continue;
+        }
+        std::string newLine = "";
         for(size_t t = 0; t < tokens.size(); t++) {
             std::string token = tokens[t];
             bool isNum = true;
-            if(token.empty()) {isNum = false;}
-            for(size_t i = 0; i < token.size(); i++) {
-                if(i == 0 && (token[i] == '-' || token[i] == '+')) {continue;}
-                if(token[i] == '.') {continue;}
-                if(token[i] < '0'||token[i]> '9') {isNum = false; break;}
+            if(token.empty()) {
+                isNum = false;
+            } 
+            else {
+                for(size_t i = 0; i < token.size(); i++) {
+                    if(i == 0 && (token[i] == '-' || token[i] == '+')) {continue;}
+                    if(token[i] == '.') {continue;}
+                    if(token[i] < '0' || token[i] > '9') {
+                        isNum = false;
+                        break;
+                    }
+                }
             }
             if(isNum) {
                 long double val = std::stold(token);
                 stack.push(val);
-            } 
-            else if(token == "add") {
-                long double res = stack.add();
-                stack.pop(); 
-                stack.push(res);
-            } 
-            else if (token == "sub") {
-                long double res = stack.subtract();
-                stack.push(res);
-            } 
-            else if (token == "mul") {
-                long double res = stack.multiply();
-                stack.push(res);
-            } 
-            else if (token == "div") {
-                long double res = stack.divide();
-                stack.push(res);
-            } 
-            else if (token == "mod") {
-                long double res = stack.mod();
-                stack.push(res);
-            } 
-            else if (token == "sqrt") {
-                long double res = stack.sqrt();
-                stack.push(res);
-            } 
-            else if (token == "sin") {
-                long double res = stack.sin();
-                stack.push(res);
-            } 
-            else if (token == "cos") {
-                long double res = stack.cos();
-                stack.push(res);
-            } 
-            else if (token == "atan") {
-                long double res = stack.atan();
-                stack.push(res);
-            } 
-            else if (token == "dup") {
-                stack.dup();
-            } 
-            else if (token == "exch") {
-                stack.exch();
-            } 
+            }
+            else if (token == "add") stack.add();
+            else if (token == "sub") stack.subtract();
+            else if (token == "mul") stack.multiply();
+            else if (token == "div") stack.divide();
+            else if (token == "mod") stack.mod();
+            else if (token == "sqrt") stack.sqrt();
+            else if (token == "sin") stack.sin();
+            else if (token == "cos") stack.cos();
+            else if (token == "atan") stack.atan();
+            else if (token == "dup") stack.dup();
+            else if (token == "exch") stack.exch();
             else if (token == "roll") {
                 long double j = stack.pop();
                 long double n = stack.pop();
                 stack.roll(n, j);
             }
-            else if (keywords.find(token) != keywords.end()) {
-                while (!stack.is_empty()) {
-                    newTokens.push_back(removeTrailingZeros(stack.pop()));
+            else if (token == "exp") {
+                if(!stack.is_empty()) {
+                    long double exponent = stack.pop();
+                    long double base = stack.pop();
+                    stack.push(std::pow(base, exponent));
                 }
-                newTokens.push_back(token);
+            }
+            else if(keywords.find(token) != keywords.end()) {
+                int numArgs = keywords[token];
+                std::vector<std::string> args;
+                for(int i = 0; i < numArgs; i++) {
+                    if(!stack.is_empty()) {
+                        long double val = stack.pop();
+                        args.insert(args.begin(), removeTrailingZeros(val));
+                    }
+                }
+                for(const std::string& arg : args) newLine += arg + " ";
+                newLine += token + " ";
+            }
+            else {
+                if(token == "dir" && !stack.is_empty()) {
+                    long double angle = stack.pop();         
+                    long double rad = angle * M_PI / 180.0L;  
+                    long double x = cos(rad);
+                    long double y = sin(rad);
+                    newLine += removeTrailingZeros(x) + " " + removeTrailingZeros(y) + " ";
+                } 
+                else {
+                    newLine += token + " ";
+                }
             }
         }
-        while (!stack.is_empty()) {
-            newTokens.push_back(removeTrailingZeros(stack.pop()));
-        }
-        std::string newLine = "";
-        for (size_t i = 0; i < newTokens.size(); i++) {
-            newLine += newTokens[i];
-            if (i != newTokens.size() - 1) newLine += " ";
-        }
-        line = newLine;
+        if(!newLine.empty() && newLine.back() == ' ') newLine.pop_back();
+        newContents.push_back(newLine);
     }
+    fileContents = newContents;
 }
 
 void PostScriptFileSimplifier::replace_tokens(
